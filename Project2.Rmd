@@ -1,0 +1,153 @@
+---
+title: "Project_2"
+author: "Tapas Mishra"
+date: "16 April 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Load the data
+
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "chest_pain_type", "resting_blood_pressure", "cholesterol","fasting_blood_sugar", "rest_ecg",
+                   "max_heart_rate_achieved","exercise_induced_angina", "st_depression","st_slope", "num_major_vessels", "thalassemia", "target")
+
+summary(heart.data)
+```
+
+I'm also going to change the values of the categorical variables, to improve the interpretation later on,
+
+```{r}
+
+
+heart.data$sex <- factor(heart.data$sex,
+                    levels = c(0,1),
+                    labels = c("female", "male"))
+
+heart.data$chest_pain_type <- factor(heart.data$chest_pain_type,
+                    levels = c(1,2,3,4),
+                    labels = c("typical angina", "atypical angina","non-anginal pain","asymptomatic"))
+
+
+heart.data$fasting_blood_sugar <- factor(heart.data$fasting_blood_sugar,
+                    levels = c(0,1),
+                    labels = c("lower than 120mg/ml", "greater than 120mg/ml"))
+
+heart.data$rest_ecg <- factor(heart.data$rest_ecg,
+                    levels = c(0,1,2),
+                    labels = c("normal", "ST-T wave abnormality","left ventricular hypertrophy"))
+
+heart.data$exercise_induced_angina <- factor(heart.data$exercise_induced_angina,
+                    levels = c(0,1),
+                    labels = c("No", "Yes"))
+
+heart.data$st_slope <- factor(heart.data$st_slope,
+                    levels = c(1,2,3),
+                    labels = c("upsloping", "flat","downsloping"))
+
+heart.data$thalassemia <- factor(heart.data$thalassemia,
+                    levels = c(1,2,3),
+                    labels = c("normal", "fixed defect","reversable defect"))
+
+
+```
+
+
+Check the data now ..
+
+```{r}
+str(heart.data)
+```
+
+
+
+```{r fig.height=12,fig.height=8 }
+#library(vioplot)
+par(mfrow = c(3,2))
+with(heart.data,vioplot(age,names="Age",horizontal=TRUE, col = "orange", main = "Distribution of Age"))
+with(heart.data,vioplot(resting_blood_pressure ,names="Resting Blood Pressure",horizontal=TRUE, col = "orange", main = "Distribution of Resting Blood Pressure"))
+with(heart.data,vioplot(cholesterol             ,names="Cholesterol",horizontal=TRUE, col = "orange", main = "Distribution of Cholesterol"))
+with(heart.data,vioplot(max_heart_rate_achieved ,names="Maximum Heart Rate Achieved",horizontal=TRUE, col = "orange", main = "Distribution of Maximum Heart Rate Achieved"))
+with(heart.data,vioplot(st_depression           ,names="ST Depression",horizontal=TRUE, col = "orange",main = "Distribution of ST Depression"))
+
+```
+
+
+
+
+
+
+Creating a pair plot 
+
+```{r fig.height=10, fig.width=15}
+plot(heart.data)
+```
+
+Checking the multicollinearity
+```{r}
+round(diag(solve(cor(heart.data[,c(1,4,5,8,10)]))),2)
+```
+
+
+```{r}
+heart.data$num[heart.data$num > 0] <- 1
+
+library(dplyr)
+
+
+```
+
+
+
+```{r}
+library(leaps)
+subsets.out<-regsubsets(target~.,data=heart.data,nbest=1)
+sso<-summary(subsets.out)
+View(sso$outmat)
+sso$
+
+my.table<-cbind(sso$outmat,round(sso$rss,2),round(sso$cp,2),round(sso$bic,2))
+
+View(my.table[,c(19,20,21)])
+View(my.table)
+colnames(my.table)[14:15]<-c("Cp","BIC")
+print.table( my.table)
+View(my.table)
+
+```
+
+
+
+
+```{r fig.width=10, fig.height=5}
+
+
+subsets.out$rss 
+plot(round(sso$rss,2) , xlab = "Number of Variables" , ylab = "RSquare values", type = "l", 
+main = "RSS Vs Number of Features Selection", col = "blue")
+points(1:8, round(sso$rss,2), type="p", col = "red", pch=19)
+
+subsets.out$rss
+subsets.out$rsq
+
+summary(sso)
+
+?abline
+
+```
+
+
+
+
+
+```{r fig.height=8, fig.width=15}
+subsets2.out<-regsubsets(target~.,data=heart.data,nbest=3, nvmax = 13)
+plot(subsets2.out,scale="Cp")
+plot(subsets2.out,scale="bic")
+```
+

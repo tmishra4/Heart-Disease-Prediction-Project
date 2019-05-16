@@ -1,0 +1,169 @@
+---
+title: "Project"
+author: "Tapas Mishra"
+date: "8 April 2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+ - Logictic Regression Model (lgm)
+      *  Different models are evaluated with variation of variables
+      *  Interaction effect is incorporated
+      *  Only "Binomial" family is evaluated. After identifying the best fit model based on key statistics and confusion matrix, the link function "probit" & "cloglog" are compared to defauly "logit" in case they offer more significance.
+      *  Define cut off value to assign "0/1" for resulting prbabilities based on  model prediction range - (Max-Min)/2
+      *  Construct confusion matrix using cutt off value. Use result to further assess models for key factors:
+         > Accuarcy
+         > Sensitivity
+         > Significance
+      *  Use ROC curve to compare side by side the most significant models.
+
+```{r}
+
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "cp", "trestbps", "chol","fbs", "restecg",
+                   "thalach","exang", "oldpeak","slope", "ca", "thal", "num")
+
+summary(heart.data)
+
+
+```
+
+```{r}
+heart.data$num[heart.data$num > 0] <- 1
+barplot(table(heart.data$num),
+        main="Fate", col="black")
+```
+``
+
+
+
+```{r}
+summary(heart.data)
+
+```
+
+
+
+
+
+
+```{r}
+glm.fit2 = glm(num ~ cp + ca +exang+ sex + thalach+oldpeak , data = heart.data , family = binomial)
+glm.fit3 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + thalach*age, data = heart.data , family = binomial)
+glm.fit4 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + thalach*cp, data = heart.data , family = binomial)
+glm.fit5 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + thalach*exang, data = heart.data , family = binomial)
+glm.fit6 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + thalach*oldpeak, data = heart.data , family = binomial)
+glm.fit7 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + thalach*slope, data = heart.data , family = binomial)
+glm.fit8 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + slope*oldpeak, data = heart.data , family = binomial)
+glm.fit9 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + exang*cp, data = heart.data , family = binomial)
+
+
+#vif(glm(num ~ cp + ca +exang+ sex + thalach+oldpeak , data = heart.data , family = binomial))
+summary(glm.fit3)
+anova(glm.fit3, test = "Chisq")
+summary(glm.fit4)
+anova(glm.fit4, test = "Chisq")
+summary(glm.fit5)
+anova(glm.fit5, test = "Chisq")
+summary(glm.fit6)
+anova(glm.fit6, test = "Chisq")
+summary(glm.fit7)
+anova(glm.fit7, test = "Chisq")
+summary(glm.fit8)
+anova(glm.fit8, test = "Chisq")
+summary(glm.fit9)
+anova(glm.fit9, test = "Chisq")
+
+#null.glm<-glm(num~1,family=binomial, data=heart.data)
+ anova(glm.fit3,glm.fit4,glm.fit5,glm.fit6,glm.fit7,glm.fit8,glm.fit9,test="Chisq")
+
+```
+
+Final model I chose , based on the relationships 
+
+```{r}
+
+heart.fit = glm(num ~ ca +sex + thalach+thal+oldpeak + exang*cp, data = heart.data , family = binomial)
+
+
+
+mdl1 = glm(num ~ ca + sex + thalach + thal + oldpeak + exang * cp ,data = heart.data , family = binomial)
+mdl2 = glm(num ~ ca + sex + thalach + thal + oldpeak + thalach * cp,data = heart.data , family = binomial)
+mdl3 = glm(num ~ cp + ca + sex  + thal + oldpeak + thalach * exang,data = heart.data , family = binomial)
+summary(mdl1)
+summary(mdl2)
+summary(mdl3)
+anova(mdl1,mdl2,mdl3,test="Chisq")
+```
+
+
+
+```{r}
+plot(glm.fit2,which=1:6)
+plot(mdl1,which=1)
+```
+
+```{r}
+
+mdl1 = glm(num ~ ca + sex + thalach + thal + oldpeak + exang * cp ,data = heart.data[-c(200,299,177,93),] , family = binomial)
+mdl2 = glm(num ~ ca + sex + thalach + thal + oldpeak + thalach * cp,data = heart.data[-c(200,299,177,93),] , family = binomial)
+mdl3 = glm(num ~ cp + ca + sex  + thal + oldpeak + thalach * exang,data = heart.data[-c(200, 299,177,93),] , family = binomial)
+summary(mdl1)
+summary(mdl2)
+summary(mdl3)
+anova(mdl1,mdl2,mdl3,test="Chisq")
+
+plot(mdl2,which=1:6)
+
+```
+
+
+
+```{r}
+library(caret)
+set.seed(30)
+inTrainRows <- createDataPartition(heart.data[-c(200, 299,177,93),]$num,p=.8,list=FALSE)
+trainData <- heart.data[inTrainRows,]
+testData <-  heart.data[-inTrainRows,]
+nrow(trainData)/(nrow(testData)+nrow(trainData)) #checking whether really 70% -> O
+
+summary(trainData)
+
+
+mdl2 = glm(num ~ ca + sex + thalach + thal + oldpeak + thalach * cp,data = trainData , family = binomial)
+glm.probs1=predict(mdl2, testData, type = "response")
+summary(mdl2)
+
+
+mdl3 = glm(num ~ cp + ca + sex  + thal + oldpeak + thalach * exang,data = trainData , family = binomial)
+glm.probs2=predict(mdl3, testData, type = "response")
+summary(mdl3)
+```
+
+
+```{r}
+
+
+
+
+cutoff_glm_final1 <- ifelse (glm.probs1 > .5, 1, 0)
+cutoff_glm_final2 <- ifelse (glm.probs2 > .5, 1, 0)
+
+tbl_glm_final1<- table(testData$num,cutoff_glm_final1)
+tbl_glm_final2<- table(testData$num,cutoff_glm_final2)
+
+
+#Classification accuracy=(TP+TN)/(TP+FP+TN+FN)#
+
+glm_final_accuracy1 <- sum(diag(tbl_glm_final1)) / nrow(testData)
+glm_final_accuracy2 <- sum(diag(tbl_glm_final2)) / nrow(testData)
+glm_final_accuracy1
+glm_final_accuracy2
+
+
+```
+
+
+Accuracy is 84.12%
