@@ -1,5 +1,5 @@
 ---
-title: "Project_2"
+title: "Variable Selection from Heart Disease Data"
 author: "Tapas Mishra"
 date: "16 April 2019"
 output: github_document
@@ -120,12 +120,6 @@ print.table( my.table)
 
 
 ```
-
-
-
-
-
-
 
 
 
