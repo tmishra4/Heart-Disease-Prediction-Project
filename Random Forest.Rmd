@@ -1,0 +1,171 @@
+---
+title: "Random Forest"
+author: "Tapas Mishra"
+date: "21/05/2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let us evaluate a Random Forest model. In this module, we would be trying a default random forest model and then perform cross validation. We would evaluate models on performance indicators. 
+
+We would also look for feature importance ranking plot by Random forest.
+
+```{r}
+library(caret)
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "cp", "trestbps", "chol","fbs", "restecg",
+                   "thalach","exang", "oldpeak","slope", "ca", "thal", "target")
+
+#Removing few missing values
+heart.data <- na.omit(heart.data)
+
+# creating chest pain as a factor
+heart.data$cp <- factor(heart.data$cp,
+                    levels = c(1,2,3,4),
+                    labels = c("typical angina", "atypical angina","non-anginal pain","asymptomatic"))
+
+
+
+# transforming target variable into binary 
+heart.data$target[heart.data$target > 0] <- 1
+
+#Converting target variable into factor
+heart.data$target <- factor(heart.data$target,
+                    levels = c(0,1),
+                    labels = c("No", "Yes"))
+
+summary(heart.data)
+
+
+
+```
+
+First we divide the dataset into training and test dataset.
+
+
+```{r}
+library(caret)
+seed <- 7
+inTrainRows <- createDataPartition(heart.data$target,p=.8,list=FALSE)
+trainData <- heart.data[inTrainRows,]
+testData <-  heart.data[-inTrainRows,]
+nrow(trainData)/(nrow(testData)+nrow(trainData)) #checking whether really 70% -> O
+
+summary(trainData)
+```
+
+we create a simple Random Forest model , with all default parameters.
+
+```{r}
+library(randomForest)
+
+RFModel <- randomForest(target ~ .,
+                    data=trainData)
+
+print(RFModel)
+
+```
+
+Predictions using default random forest model.
+
+```{r}
+
+library(pROC)
+#varImpPlot(RFModel)
+RFPrediction <- predict(RFModel, testData)
+RFPredictionprob = predict(RFModel,testData,type="prob")[, 2]
+
+RFConfMat <- confusionMatrix(RFPrediction, testData[,"target"])
+RFConfMat
+
+AUC <- roc(as.numeric(testData$target),as.numeric(as.matrix((RFPredictionprob))))$auc
+Accuracy <- RFConfMat$overall['Accuracy'] 
+
+
+```
+
+Creating other performance indicators.
+
+```{r}
+precision = 26/32
+recall = 26/31
+F1 = (2 * precision *recall) / (recall + precision)
+precision
+recall
+F1
+AUC
+Accuracy
+```
+
+No performing repeated cross validation with 10 folds and 3 repeats . We also optimize mtry parameter using gridsearch.
+
+```{r}
+
+library(randomForest)
+# Create model with default paramters
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+seed <- 10
+metric <- "Accuracy"
+set.seed(seed)
+mtry <- sqrt(ncol(trainData))
+tunegrid <- expand.grid(.mtry=mtry)
+rf_default <- train(target~., data=trainData, method="rf", metric=metric, tuneGrid=tunegrid, trControl=control)
+print(rf_default)
+
+
+```
+
+creating a random forest feature importance.
+
+```{r fig.height= 4, fig.width= 10}
+boostImp =varImp(rf_default, scale = FALSE)
+plot(boostImp,main = 'Variable importance with Random Forest')
+```
+
+Predictions using cross validation model 
+
+
+```{r}
+RFPrediction_cv <- predict(rf_default, testData)
+RFConfMat_cv <- confusionMatrix(RFPrediction_cv, testData[,"target"])
+RFPredictionprob_cv = predict(rf_default,testData,type="prob")[, 2]
+RFConfMat_cv
+
+
+AUC_cv <- roc(as.numeric(testData$target),as.numeric(as.matrix((RFPredictionprob_cv))))$auc
+Accuracy_cv <- RFConfMat_cv$overall['Accuracy'] 
+```
+
+
+```{r}
+precision_cv = 28/32
+recall_cv = 28/34
+F1_cv = (2 * precision_cv *recall_cv) / (recall_cv + precision_cv)
+precision_cv
+recall_cv
+F1_cv
+AUC_cv
+Accuracy_cv
+```
+
+
+Creating ROC curve for 2 models
+
+```{r fig.height=6 , fig.width=10}
+library(pROC)
+
+
+result.roc_cv <- roc(testData$target, RFPredictionprob_cv) # Draw ROC curve.
+result.roc <- roc(testData$target, RFPredictionprob) # Draw ROC curve.
+plot(result.roc , main = "ROC",col="blue")
+plot(result.roc_cv , col= "red",add=TRUE)
+legend("topleft",col=c("red", "blue"), legend= c("ROC with Cross Vslidation", "ROC without Cross Vslidation"),        lty=1, cex=0.8,bg='lightyellow') 
+
+
+
+```
+
+1

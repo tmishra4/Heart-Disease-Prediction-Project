@@ -59,8 +59,16 @@ glm.fit9 = glm(num ~ cp + ca +sex + thalach+thal+oldpeak + exang*cp, data = hear
 
 #vif(glm(num ~ cp + ca +exang+ sex + thalach+oldpeak , data = heart.data , family = binomial))
 summary(glm.fit3)
-anova(glm.fit3, test = "Chisq")
 summary(glm.fit4)
+summary(glm.fit5)
+summary(glm.fit6)
+summary(glm.fit7)
+summary(glm.fit8)
+summary(glm.fit9)
+
+
+anova(glm.fit3, test = "Chisq")
+
 anova(glm.fit4, test = "Chisq")
 summary(glm.fit5)
 anova(glm.fit5, test = "Chisq")

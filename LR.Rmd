@@ -1,0 +1,449 @@
+---
+title: "LR"
+author: "Tapas Mishra"
+date: "21/05/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "cp", "trestbps", "chol","fbs", "restecg",
+                   "thalach","exang", "oldpeak","slope", "ca", "thal", "target")
+
+heart.data <- na.omit(heart.data)
+
+heart.data$cp <- factor(heart.data$cp,
+                    levels = c(1,2,3,4),
+                    labels = c("typical angina", "atypical angina","non-anginal pain","asymptomatic"))
+
+
+
+
+heart.data$target[heart.data$target > 0] <- 1
+
+heart.data$target <- factor(heart.data$target,
+                    levels = c(0,1),
+                    labels = c("No", "Yes"))
+
+summary(heart.data)
+```
+
+
+
+```{r pressure, echo=FALSE}
+
+glm.model1 = glm(target ~ age + sex + cp + trestbps + chol + fbs + 
+restecg + thalach  + exang + oldpeak + slope + ca , data = heart.data , family = binomial)
+
+summary(glm.model1)
+```
+
+
+
+```{r}
+
+glm.model2 = glm(target ~  sex + cp + ca + slope + exang + thalach * age, data = heart.data , family = binomial)
+
+summary(glm.model2)
+
+```
+
+
+
+```{r}
+glm.model3 = glm(target ~  sex + cp + ca  + exang + thalach *slope, data = heart.data , family = binomial)
+
+summary(glm.model3)
+
+```
+
+
+
+```{r}
+glm.model4 = glm(target ~  sex + cp + ca  + exang + trestbps *oldpeak, data = heart.data , family = binomial)
+
+summary(glm.model4)
+
+```
+
+
+```{r}
+glm.model5 = glm(target ~  sex + cp + ca  + exang + oldpeak + trestbps, data = heart.data , family = binomial)
+
+summary(glm.model5)
+```
+
+
+```{r}
+glm.model6 = glm(target ~  sex + cp + ca  + exang + thalach*trestbps, data = heart.data , family = binomial)
+
+summary(glm.model6)
+```
+
+
+
+
+```{r}
+glm.model7 = glm(target ~  sex + cp + ca + exang + oldpeak + thalach, data = heart.data , family = binomial)
+summary(glm.model7)
+
+```
+
+
+
+
+
+Model is trained using logit link as well as probit & cloglog.
+
+```{r}
+library(caret)
+set.seed(30)
+inTrainRows <- createDataPartition(heart.data$target,p=.8,list=FALSE)
+trainData <- heart.data[inTrainRows,]
+testData <-  heart.data[-inTrainRows,]
+nrow(trainData)/(nrow(testData)+nrow(trainData)) #checking whether really 70% -> O
+
+summary(trainData)
+```
+
+
+
+```{r}
+glm.model_l = glm(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData , family = binomial (link = logit))
+glm.probs_l=predict(glm.model_l, trainData, type = "response")
+summary(glm.model_l)
+```
+
+
+```{r}
+glm.model_p = glm(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData , family = binomial (link = probit))
+glm.probs_p=predict(glm.model_p, trainData, type = "response")
+summary(glm.model_p)
+```
+
+
+```{r}
+glm.model_c = glm(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData , family = binomial (link = cloglog))
+glm.prob_cs=predict(glm.model_c, trainData, type = "response")
+summary(glm.model_c)
+```
+
+Performance Metric For Training Data
+
+```{r}
+predit_glm_p_train <- predict(glm.model_p, newdata = trainData, type = "response")
+predit_glm_c_train <- predict(glm.model_c, newdata = trainData, type = "response")
+predit_glm_l_train <- predict(glm.model_l, newdata = trainData, type = "response")
+
+#range
+range_glm_p_train <- range(predit_glm_p_train)
+range_glm_c_train <- range(predit_glm_c_train)
+range_glm_l_train = range(predit_glm_l_train)
+range_glm_p_train
+range_glm_c_train
+range_glm_l_train
+
+(0.005303933 + 0.999972095)/2
+(0.03479403 + 1.00000000)/2
+(0.01159018 + 0.99925107)/2
+
+#confusion matrix 
+
+cutoff_glm_p_train <- ifelse (predit_glm_p_train > .50, 1, 0)
+tbl_glm_p_train<- table(trainData$target,cutoff_glm_p_train)
+
+cutoff_glm_c_train <- ifelse (predit_glm_c_train > .51, 1, 0)
+tbl_glm_c_train <- table(trainData$target,cutoff_glm_c_train)
+
+
+cutoff_glm_l_train <- ifelse (predit_glm_l_train > .50, 1, 0)
+tbl_glm_l_train <- table(trainData$target,cutoff_glm_l_train)
+
+tbl_glm_p_train
+tbl_glm_c_train
+tbl_glm_l_train
+
+# Accuracy
+glm_accuracy_p_train <- sum(diag(tbl_glm_p_train)) / nrow(trainData)
+glm_accuracy_c_train <- sum(diag(tbl_glm_c_train)) / nrow(trainData)
+glm_accuracy_l_train <- sum(diag(tbl_glm_l_train)) / nrow(trainData)
+
+#sensitivity
+glm_sensitivity_p_train <- 119/(119+9)
+glm_sensitivity_c_train <- 119/(119+9)
+glm_sensitivity_l_train <- 119/(119+9)
+
+#specificity
+glm_specificity_p_train <- 86/(86+24)
+glm_specificity_c_train <- 78/(78+32)
+glm_specificity_l_train <- 86/(86+24)
+
+#F! Score
+glm_f1_p_train = (2*glm_sensitivity_p*glm_specificity_p_train)/ (glm_specificity_p_train + glm_sensitivity_p_train)
+glm_f1_c_train = (2*glm_sensitivity_c*glm_specificity_c_train)/ (glm_specificity_c_train + glm_sensitivity_c_train)
+glm_f1_l_train = (2*glm_sensitivity_l*glm_specificity_l_train)/ (glm_specificity_l_train + glm_sensitivity_l_train)
+
+#summary 
+
+glm_models_summary_train <- round(matrix(c(glm_accuracy_p_train,glm_sensitivity_p_train,glm_specificity_p_train,glm_f1_p_train,glm_accuracy_c_train,glm_sensitivity_c_train,glm_specificity_c_train,glm_f1_c_train,glm_accuracy_l_train,glm_sensitivity_l_train,glm_specificity_l_train,glm_f1_l_train),ncol=4,byrow=TRUE),2)
+colnames(glm_models_summary_train) <- c("Accuacy","Sensitivity", "Specificty","F1 Score")
+rownames(glm_models_summary_train) <- c("probit","cloglog","logit")
+glm_models_summary_train<- as.table(glm_models_summary_train)
+glm_models_summary_train
+
+
+
+```
+
+
+
+Performance Metric For Training Data
+
+```{r}
+predit_glm_p <- predict(glm.model_p, newdata = testData, type = "response")
+predit_glm_c <- predict(glm.model_c, newdata = testData, type = "response")
+predit_glm_l <- predict(glm.model_l, newdata = testData, type = "response")
+
+
+#assigning cut off value to assign "0/1" for resulting prbabilities#
+range_glm_p <- range(predit_glm_p)
+range_glm_c <- range(predit_glm_c)
+range_glm_l = range(predit_glm_l)
+range_glm_p
+range_glm_c
+range_glm_l
+```
+
+
+
+```{r}
+(0.006871216 + 0.996574693)/2
+(0.03777331 + 0.99998843)/2
+(0.01358544 + 0.99203486)/2
+
+```
+
+Confusion Matrix is created to further evaluate the model using :
+Accuracy Level
+Sensitivity
+Specificity There is no rule of thumb rather those factors should be looked at in a holistic manner specially as low tolerance is expected for risk an error.
+
+
+```{r}
+cutoff_glm_p <- ifelse (predit_glm_p > .50, 1, 0)
+tbl_glm_p<- table(testData$target,cutoff_glm_p)
+
+cutoff_glm_c <- ifelse (predit_glm_c > .51, 1, 0)
+tbl_glm_c <- table(testData$target,cutoff_glm_c)
+
+
+cutoff_glm_l <- ifelse (predit_glm_l > .50, 1, 0)
+tbl_glm_l <- table(testData$target,cutoff_glm_l)
+
+tbl_glm_p
+tbl_glm_c
+tbl_glm_l
+
+```
+
+Accuracy
+```{r}
+glm_accuracy_p <- sum(diag(tbl_glm_p)) / nrow(testData)
+glm_accuracy_p
+glm_accuracy_c <- sum(diag(tbl_glm_c)) / nrow(testData)
+glm_accuracy_c
+glm_accuracy_l <- sum(diag(tbl_glm_l)) / nrow(testData)
+glm_accuracy_l
+```
+
+#Sensitivity=TP/(TP+FN)#
+
+```{r}
+glm_sensitivity_p <- 28/(28+4)
+glm_sensitivity_c <- 29/(29+3)
+glm_sensitivity_l <- 28/(28+4)
+glm_sensitivity_p
+glm_sensitivity_c
+glm_sensitivity_l
+```
+
+#Specificity=TN/(TN+FP)#
+
+
+```{r}
+glm_specificity_p<- 18/(18+9)
+glm_specificity_c<- 16/(16+11)
+glm_specificity_l<- 18/(18+9)
+glm_specificity_p
+glm_specificity_c
+glm_specificity_l
+```
+
+
+```{r}
+glm_f1_p = (2*glm_sensitivity_p*glm_specificity_p)/ (glm_specificity_p + glm_sensitivity_p)
+glm_f1_c = (2*glm_sensitivity_c*glm_specificity_c)/ (glm_specificity_c + glm_sensitivity_c)
+glm_f1_l = (2*glm_sensitivity_l*glm_specificity_l)/ (glm_specificity_l + glm_sensitivity_l)
+```
+
+
+
+```{r}
+#glm Models Comparison#
+glm_models_summary <- round(matrix(c(glm_accuracy_p,glm_sensitivity_p,glm_specificity_p,glm_f1_p,glm_accuracy_c,glm_sensitivity_c,glm_specificity_c,glm_f1_c,glm_accuracy_l,glm_sensitivity_l,glm_specificity_l,glm_f1_l),ncol=4,byrow=TRUE),2)
+colnames(glm_models_summary) <- c("Accuacy","Sensitivity", "Specificty","F1 Score")
+rownames(glm_models_summary) <- c("plogit Link","cloglog Link","l")
+glm_models_summary<- as.table(glm_models_summary)
+glm_models_summary
+```
+
+ROC curve
+
+
+```{r}
+library(pROC)
+
+ROC_logit <- roc(testData$target, predit_glm_l)
+ROC_probit <- roc(testData$target, predit_glm_p)
+ROC_cloglog <- roc(testData$target, predit_glm_c)
+plot(ROC_logit, col = 'blue')
+plot(ROC_probit, add=TRUE, col='red')
+plot(ROC_cloglog, add=TRUE, col='black')
+
+
+```
+
+Cross Validation 
+```{r}
+library(caret)
+
+train_control <- trainControl(method="cv", number=5)
+
+model_p_cv_train <- train(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData,trControl=train_control, method="glm", family = binomial(link = probit))
+
+model_c_cv_train <- train(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData,trControl=train_control, method="glm", family = binomial(link = cloglog))
+
+model_l_cv_train <- train(target ~  sex + cp + ca + exang + oldpeak + thalach, data = trainData,trControl=train_control, method="glm", family = binomial(link = logit))
+
+
+
+```
+
+
+Performance measures for CV for Training data
+
+```{r}
+prediction_p_cv_train = predict(model_p_cv_train, trainData)
+prediction_c_cv_train = predict(model_c_cv_train, trainData)
+prediction_l_cv_train = predict(model_l_cv_train, trainData)
+
+cm_p_cv_train = table(predictions =prediction_p_cv_train, actuals = trainData$target )
+cm_c_cv_train = table(predictions =prediction_c_cv_train, actuals = trainData$target )
+cm_l_cv_train = table(predictions =prediction_l_cv_train, actuals = trainData$target )
+cm_p_cv_train
+cm_c_cv_train
+cm_l_cv_train
+
+
+
+```
+
+```{r}
+#Accuracy
+accuracy_p_cv_train <- sum(diag(cm_p_cv_train)) / nrow(trainData)
+accuracy_c_cv_train <- sum(diag(cm_c_cv_train)) / nrow(trainData)
+accuracy_l_cv_train <- sum(diag(cm_l_cv_train)) / nrow(trainData)
+
+
+#Precision
+glm_precision_p_cv_train <- 119/(119+9)
+glm_precision_c_cv_train <- 119/(119+9)
+glm_precision_l_cv_train <- 119/(119+9)
+
+#Recall
+glm_recall_p_cv_train <- 119/(119+24)
+glm_recall_c_cv_train <- 119/(119+31)
+glm_recall_l_cv_train <- 119/(119+24)
+
+#F! Score
+glm_f1_p_cv_train = (2*glm_precision_p_cv_train*glm_recall_p_cv_train)/ (glm_precision_p_cv_train + glm_recall_p_cv_train)
+glm_f1_c_cv_train = (2*glm_precision_c_cv_train*glm_recall_c_cv_train)/ (glm_precision_c_cv_train + glm_recall_c_cv_train)
+glm_f1_l_cv_train = (2*glm_precision_l_cv_train*glm_recall_l_cv_train)/ (glm_precision_l_cv_train + glm_recall_l_cv_train)
+
+
+#summary 
+
+glm_models_summary_cv_train <- round(matrix(c(accuracy_p_cv_train,glm_precision_p_cv_train,glm_recall_p_cv_train,glm_f1_p_cv_train,accuracy_c_cv_train,glm_precision_c_cv_train,glm_recall_c_cv_train,glm_f1_c_cv_train,accuracy_l_cv_train,glm_precision_l_cv_train,glm_recall_l_cv_train,glm_f1_l_cv_train),ncol=4,byrow=TRUE),2)
+colnames(glm_models_summary_cv_train) <- c("Accuacy","Precision", "Recall","F1 Score")
+rownames(glm_models_summary_cv_train) <- c("probit","cloglog","logit")
+glm_models_summary_cv_train<- as.table(glm_models_summary_cv_train)
+glm_models_summary_cv_train
+
+```
+
+
+
+Performance measures for CV for Test data
+
+```{r}
+prediction_p_cv_test = predict(model_p_cv_train, testData)
+prediction_c_cv_test = predict(model_c_cv_train, testData)
+prediction_l_cv_test = predict(model_l_cv_train, testData)
+
+cm_p_cv_test = table(predictions =prediction_p_cv_test, actuals = testData$target )
+cm_c_cv_test = table(predictions =prediction_c_cv_test, actuals = testData$target )
+cm_l_cv_test = table(predictions =prediction_l_cv_test, actuals = testData$target )
+cm_p_cv_test
+cm_c_cv_test
+cm_l_cv_test
+
+
+
+```
+
+
+
+
+```{r}
+
+
+
+#Accuracy
+accuracy_p_cv_test <- sum(diag(cm_p_cv_test)) / nrow(testData)
+accuracy_c_cv_test <- sum(diag(cm_c_cv_test)) / nrow(testData)
+accuracy_l_cv_test <- sum(diag(cm_l_cv_test)) / nrow(testData)
+
+
+#Precision
+glm_precision_p_cv_test <- 28/(28+4)
+glm_precision_c_cv_test <- 29/(29+3)
+glm_precision_l_cv_test <- 28/(28+4)
+
+#Recall
+glm_recall_p_cv_test <- 28/(28+9)
+glm_recall_c_cv_test <- 29/(29+10)
+glm_recall_l_cv_test <- 28/(28+9)
+
+#F! Score
+glm_f1_p_cv_test = (2*glm_precision_p_cv_test*glm_recall_p_cv_test)/ (glm_precision_p_cv_test + glm_recall_p_cv_test)
+glm_f1_c_cv_test = (2*glm_precision_c_cv_test*glm_recall_c_cv_test)/ (glm_precision_c_cv_test + glm_recall_c_cv_test)
+glm_f1_l_cv_test = (2*glm_precision_l_cv_test*glm_recall_l_cv_test)/ (glm_precision_l_cv_test + glm_recall_l_cv_test)
+
+
+#summary 
+
+glm_models_summary_cv_test <- round(matrix(c(accuracy_p_cv_test,glm_precision_p_cv_test,glm_recall_p_cv_test,glm_f1_p_cv_test,accuracy_c_cv_test,glm_precision_c_cv_test,glm_recall_c_cv_test,glm_f1_c_cv_test,accuracy_l_cv_test,glm_precision_l_cv_test,glm_recall_l_cv_test,glm_f1_l_cv_test),ncol=4,byrow=TRUE),2)
+colnames(glm_models_summary_cv_test) <- c("Accuacy","Precision", "Recall","F1 Score")
+rownames(glm_models_summary_cv_test) <- c("probit","cloglog","logit")
+glm_models_summary_cv_test<- as.table(glm_models_summary_cv_test)
+glm_models_summary_cv_test
+```
+
+
+
+

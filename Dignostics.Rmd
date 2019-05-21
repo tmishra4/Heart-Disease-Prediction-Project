@@ -1,0 +1,159 @@
+---
+title: "Dignostic Plots"
+author: "Tapas Mishra"
+date: "16/05/2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r cars}
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "chest_pain_type", "resting_blood_pressure", "cholesterol","fasting_blood_sugar", "rest_ecg",
+                   "max_heart_rate_achieved","exercise_induced_angina", "st_depression","st_slope", "num_major_vessels", "thalassemia", "target")
+
+
+
+str(heart.data)
+
+heart.data.sc <- scale(heart.data[,-c(2,14)])
+heart.data.sc = cbind(heart.data.sc,heart.data[,c(2,14)])
+heart.data.sc$target[heart.data.sc$target > 0] <- 1
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+
+
+
+str(heart.data.sc)
+
+
+
+```
+
+
+```{r}
+
+
+
+glm.fit1 = glm(target ~ chest_pain_type + num_major_vessels +exercise_induced_angina + sex + max_heart_rate_achieved+st_depression , data = heart.data.sc , family = binomial)
+summary(glm.fit1)
+```
+
+
+
+```{r}
+pearson.residuals<-residuals(glm.fit1,type="deviance")
+par(mfrow=c(1,2))
+plot(pearson.residuals, ylab="residuals", main="deviance")
+abline(h=0,lty=2)
+
+
+
+plot(heart.data$resting_blood_pressure, pearson.residuals, 
+ylab="Residuals", xlab="Waiting Time", 
+main="Old Faithful Eruptions") 
+abline(0, 0)     
+
+plot(glm.fit1)
+
+
+
+```
+
+
+
+```{r}
+par(mfrow = c(2,2))
+plot(glm.fit1, which = c(1,2,4,5))
+```
+
+
+
+
+```{r}
+glm.fit = glm(target ~ chest_pain_type * num_major_vessels * exercise_induced_angina  * max_heart_rate_achieved*st_depression , data = heart.data , family = binomial)
+
+t = summary(glm.fit)
+t
+```
+
+
+```{r}
+glm.fit = glm(target ~  chest_pain_type+ num_major_vessels +exercise_induced_angina + sex + max_heart_rate_achieved+st_depression + num_major_vessels*max_heart_rate_achieved*st_depression*chest_pain_type , data = heart.data , family = binomial)
+summary(glm.fit)
+
+
+```
+
+
+
+```{r}
+glm.fit2 = update(glm.fit,~chest_pain_type+ num_major_vessels +exercise_induced_angina + sex + max_heart_rate_achieved+st_depression + chest_pain_type* max_heart_rate_achieved*st_depression ) 
+summary(glm.fit2)
+```
+
+
+```{r}
+glm.fit1 = glm(target ~ chest_pain_type+ num_major_vessels +exercise_induced_angina + sex + max_heart_rate_achieved+st_depression+I(chest_pain_type^2) + I(num_major_vessels^2) + I(exercise_induced_angina^2) + sex + I(max_heart_rate_achieved^2) + I(st_depression^2) , data = heart.data.sc , family = binomial)
+summary(glm.fit1)
+```
+
+
+```{r}
+glm.fit4 = glm(target ~ exercise_induced_angina + sex + max_heart_rate_achieved+st_depression + I(num_major_vessels^2)  , data = heart.data.sc , family = binomial)
+summary(glm.fit4)
+```
+
+
+```{r}
+plot(glm.fit4)
+```
+
+
+
+```{r}
+library(caret)
+set.seed(30)
+inTrainRows <- createDataPartition(heart.data.sc$target,p=.8,list=FALSE)
+trainData <- heart.data[inTrainRows,]
+testData <-  heart.data[-inTrainRows,]
+nrow(trainData)/(nrow(testData)+nrow(trainData)) #checking whether really 70% -> O
+
+summary(trainData)
+
+
+
+mdl2 = glm(target ~ chest_pain_type + num_major_vessels +exercise_induced_angina + sex + max_heart_rate_achieved+st_depression,data = trainData , family = binomial)
+
+glm.probs1=predict(mdl2, testData, type = "response")
+summary(mdl2)
+
+
+```
+
+
+```{r}
+
+cutoff_glm_final1 <- ifelse (glm.probs1 > .5, 1, 0)
+
+
+tbl_glm_final1<- table(testData$num,cutoff_glm_final1)
+
+
+
+#Classification accuracy=(TP+TN)/(TP+FP+TN+FN)#
+
+glm_final_accuracy1 <- sum(diag(tbl_glm_final1)) / nrow(testData)
+
+glm_final_accuracy1
+
+```
+
