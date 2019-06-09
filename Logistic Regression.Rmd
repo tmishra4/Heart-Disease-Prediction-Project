@@ -120,6 +120,7 @@ summary(mdl2)
 summary(mdl3)
 anova(mdl1,mdl2,mdl3,test="Chisq")
 
+#Producing dignostic plots
 plot(mdl2,which=1:6)
 
 ```
