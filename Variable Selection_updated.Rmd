@@ -1,0 +1,126 @@
+---
+title: "Variable Selection from Heart Disease Data"
+author: "Tapas Mishra"
+date: "16 April 2019"
+output: pdf_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r}
+# Load the data
+
+heart.data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",header=FALSE,sep=",",na.strings = '?')
+names(heart.data) <- c( "age", "sex", "chest_pain_type", "resting_blood_pressure", "cholesterol","fasting_blood_sugar", "rest_ecg",
+                   "max_heart_rate_achieved","exercise_induced_angina", "st_depression","st_slope", "num_major_vessels", "thalassemia", "target")
+
+str(heart.data)
+summary(heart.data)
+
+heart.data <- na.omit(heart.data)
+
+```
+
+I'm also going to change the values of the categorical variables, to improve the interpretation later on,
+
+```{r}
+
+
+
+
+heart.data$chest_pain_type <- factor(heart.data$chest_pain_type,
+                    levels = c(1,2,3,4),
+                    labels = c("typical angina", "atypical angina","non-anginal pain","asymptomatic"))
+
+
+
+
+heart.data$target[heart.data$target > 0] <- 1
+
+heart.data$target <- factor(heart.data$target,
+                    levels = c(0,1),
+                    labels = c("No", "Yes"))
+
+
+```
+
+
+Check the data now ..
+
+```{r}
+summary(heart.data)
+```
+
+Producing violin plots for distribution of contineous features
+
+```{r fig.height=12,fig.height=8 }
+library(vioplot)
+par(mfrow = c(2,2))
+with(heart.data,vioplot(age,names="Age",horizontal=TRUE, col = "orange", main = "Distribution of Age"))
+with(heart.data,vioplot(resting_blood_pressure  ,names="Resting Blood Pressure (Trestbps)",horizontal=TRUE, col = "orange", main = "Distribution of Resting Blood Pressure"))
+with(heart.data,vioplot(cholesterol ,names="Cholesterol  (chol)",horizontal=TRUE, col = "orange", main = "Distribution of Cholesterol"))
+with(heart.data,vioplot(max_heart_rate_achieved  ,names="Maximum Heart Rate Achieved (Thalch)",horizontal=TRUE, col = "orange", main = "Distribution of Maximum Heart Rate Achieved"))
+
+
+```
+
+
+
+
+
+
+Creating a pair plot 
+
+```{r fig.height=10, fig.width=15}
+plot(heart.data)
+```
+
+Checking the multicollinearity using VIF
+```{r}
+round(diag(solve(cor(heart.data[,c(1,2,4,5,6,7,8,9,10,11)]))),2)
+```
+
+
+```{r}
+heart.data
+```
+
+
+Producing AIC , BIC and RSS values for various feature subset selection.
+
+
+```{r}
+library(leaps)
+subsets.out<-regsubsets(target~.,data=heart.data)
+sso<-summary(subsets.out)
+
+dim(heart.data)
+
+ic<-sso$bic-log(297)*13 + 2*13
+round(ic,2)
+
+
+
+my.table<-cbind(sso$outmat,round(sso$rss,2),round(ic,2),round(sso$bic,2))
+
+
+
+colnames(my.table)[14:15]<-c("Cp","BIC")
+print.table( my.table)
+
+
+```
+
+Producing BIC and CP plots.
+
+```{r fig.height=8, fig.width=15}
+subsets2.out<-regsubsets(target~.,data=heart.data,nbest=3, nvmax = 13)
+plot(subsets2.out,scale="Cp")
+plot(subsets2.out,scale="bic")
+```
+
