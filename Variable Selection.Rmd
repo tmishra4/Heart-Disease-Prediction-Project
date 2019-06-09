@@ -56,16 +56,16 @@ Check the data now ..
 summary(heart.data)
 ```
 
-
+Producing violin plots for distribution of contineous features
 
 ```{r fig.height=12,fig.height=8 }
 library(vioplot)
-par(mfrow = c(3,2))
+par(mfrow = c(2,2))
 with(heart.data,vioplot(age,names="Age",horizontal=TRUE, col = "orange", main = "Distribution of Age"))
-with(heart.data,vioplot(resting_blood_pressure ,names="Resting Blood Pressure",horizontal=TRUE, col = "orange", main = "Distribution of Resting Blood Pressure"))
-with(heart.data,vioplot(cholesterol             ,names="Cholesterol",horizontal=TRUE, col = "orange", main = "Distribution of Cholesterol"))
-with(heart.data,vioplot(max_heart_rate_achieved ,names="Maximum Heart Rate Achieved",horizontal=TRUE, col = "orange", main = "Distribution of Maximum Heart Rate Achieved"))
-with(heart.data,vioplot(st_depression           ,names="ST Depression",horizontal=TRUE, col = "orange",main = "Distribution of ST Depression"))
+with(heart.data,vioplot(resting_blood_pressure  ,names="Resting Blood Pressure (Trestbps)",horizontal=TRUE, col = "orange", main = "Distribution of Resting Blood Pressure"))
+with(heart.data,vioplot(cholesterol ,names="Cholesterol  (chol)",horizontal=TRUE, col = "orange", main = "Distribution of Cholesterol"))
+with(heart.data,vioplot(max_heart_rate_achieved  ,names="Maximum Heart Rate Achieved (Thalch)",horizontal=TRUE, col = "orange", main = "Distribution of Maximum Heart Rate Achieved"))
+
 
 ```
 
@@ -91,7 +91,7 @@ heart.data
 ```
 
 
-
+Producing AIC , BIC and RSS values for various feature subset selection.
 
 
 ```{r}
@@ -116,7 +116,7 @@ print.table( my.table)
 
 ```
 
-
+Producing BIC and CP plots.
 
 ```{r fig.height=8, fig.width=15}
 subsets2.out<-regsubsets(target~.,data=heart.data,nbest=3, nvmax = 13)
